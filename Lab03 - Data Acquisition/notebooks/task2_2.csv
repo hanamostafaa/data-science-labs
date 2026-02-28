@@ -1,0 +1,5 @@
+book_title,borrower_name,borrow_date,due_date,days_overdue,estimated_fine
+Cairo Trilogy,Ahmed Hassan,2023-12-10,2023-12-24,797.0,1594.0
+Cairo Trilogy,Ahmed Hassan,2023-12-27,2024-01-10,780.0,1560.0
+The Map of Love,Omar Khaled,2024-01-29,2024-02-12,747.0,1494.0
+The Days,Fatima Ali,2024-01-30,2024-02-13,746.0,1492.0
