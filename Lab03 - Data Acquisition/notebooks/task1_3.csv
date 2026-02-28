@@ -1,4 +1,4 @@
 membership_type,total_members,total_fines,avg_fine_per_member
-faculty,1,2.0,2.0
-public,1,26.0,26.0
-student,1,10.0,10.0
+faculty,1,10.0,10.0
+public,1,6.0,6.0
+student,2,36.0,18.0
