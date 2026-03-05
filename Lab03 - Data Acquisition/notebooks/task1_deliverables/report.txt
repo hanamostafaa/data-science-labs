@@ -1,0 +1,1 @@
+Students with membership type "student" has highest avergae fines. The book “Children of Gebelawi” by Naguib Mahfouz is borrowed the most, but there are very few copies available, so the library may need to add more. Most members are Active and borrows books. The most active members are Ahmed Hassan, Fatima Ali, and Omar Khaled.

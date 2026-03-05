@@ -1,4 +1,4 @@
-member_name,membership_type,total_borrowings,books_returned,bookes_still_borrowed,total_fines_paid,"round(100*on_time_return_rate,2)",member_category
+member_name,membership_type,total_borrowings,books_returned,books_still_borrowed,total_fines_paid,on_time_return_rate,member_category
 Ahmed Hassan,student,5,3,2,0.0,100.0,Active
 Fatima Ali,student,4,3,1,22.0,0.0,Active
 Mohamed Ibrahim,faculty,4,4,0,10.0,0.0,Active

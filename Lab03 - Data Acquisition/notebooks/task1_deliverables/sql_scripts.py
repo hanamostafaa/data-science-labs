@@ -92,7 +92,7 @@ SELECT
     br.books_returned, 
     br.total_borrowings - br.books_returned AS books_still_borrowed, 
     br.total_fines_paid, 
-    ROUND(100 * r.on_time_return_rate, 2) AS on_time_return_percentage,
+    ROUND(100 * r.on_time_return_rate, 2) AS on_time_return_rate,
     CASE 
         WHEN br.total_borrowings IS NULL OR br.total_borrowings = 0 THEN 'Inactive'
         WHEN br.total_borrowings BETWEEN 1 AND 5 THEN 'Active'
