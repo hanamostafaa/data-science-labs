@@ -5,8 +5,8 @@ GitHub Repository Analysis Report
 Total Repositories: 11
 
 Most Used Programming Language: C
-Average Stars per Repository: 21060.73
-Total Forks Across All Repositories: 61727
+Average Stars per Repository: 21140.27
+Total Forks Across All Repositories: 61813
 
 Most Recently Updated Repository: HunspellColorize
 Oldest Repository: linux
