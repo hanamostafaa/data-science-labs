@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 import json
 from collections import deque
 import os
@@ -10,6 +9,8 @@ from urllib.parse import urljoin, urlparse
 from urllib.robotparser import RobotFileParser
 import pandas as pd
 import matplotlib.pyplot as plt
+from urllib3 import Retry
+from requests.adapters import HTTPAdapter
 
 # task 1 
 def scrape_travel_books():
@@ -172,6 +173,8 @@ class CategoryScraper:
             'stock_percentage': (grouped['in_stock_percent'] * 100).to_dict()
         }
 # task 3
+
+
 class AdvancedBookScraper:
     """
     Production-ready book scraper with logging, rate limiting, and error recovery.
@@ -184,6 +187,7 @@ class AdvancedBookScraper:
         # Setup file-based logging — all events will be written to scraper.log
         logging.basicConfig(
             filename='scraper.log',
+            filemode='w',  # overwrite log each run
             level=logging.INFO,
             format='%(asctime)s - %(levelname)s - %(message)s',
         )
@@ -197,6 +201,15 @@ class AdvancedBookScraper:
         self.session.headers.update(
             {'User-Agent': 'Mozilla/5.0 (Educational Purpose) AdvancedBookScraper/1.0'}
         )
+        retry_strategy = Retry(
+            total=3,  # Total retry attempts
+            backoff_factor=1,  # Exponential backoff: 1s → 2s → 4s
+            status_forcelist=[429, 500, 502, 503, 504],  # Retry on these HTTP status codes
+            allowed_methods=["HEAD", "GET", "OPTIONS", "POST"]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
         self.rate_limit = 10  # max requests per minute
         self.time_window = 60  # seconds
         self.request_times = deque()
@@ -234,6 +247,7 @@ class AdvancedBookScraper:
     def _get_category_url(self, category_name):
 
         url = self.base_url + "/index.html"
+        self.enforce_rate_limit()  
         response = self.session.get(url)
         soup = BeautifulSoup(response.text, "lxml")
 
@@ -259,16 +273,20 @@ class AdvancedBookScraper:
         # Your code
         category_url = self._get_category_url(category_name)
         if not category_url:
-            print(f"Category '{category_name}' not found.")
+            self.logger.warning(f"Category '{category_name}' not found.")
             return []
-        print(f"Scraping category '{category_name}' from {category_url}...")
+        self.logger.info(f"Scraping category '{category_name}' from {category_url}...")
         books = []
         url = category_url
         page = 1
         while url and (max_pages is None or page <= max_pages):
-            response_text = self.scrape_with_retry(url)
-            if not response_text:
-                self.logger.warning(f"Failed to scrape category '{category_name}' page {page}")
+            try:
+                self.enforce_rate_limit()
+                response = self.session.get(url, timeout=10)
+                response.raise_for_status()
+                response_text = response.text
+            except Exception as e:
+                self.logger.warning(f"Failed to scrape category '{category_name}' page {page}: {e}")
                 break
             soup = BeautifulSoup(response_text, 'lxml')
             for article in soup.select('article.product_pod'):
@@ -307,32 +325,7 @@ class AdvancedBookScraper:
 
         # record the current request time
         self.request_times.append(time.time())
-
-    def scrape_with_retry(self, url, max_attempts=3):
-        """
-        Scrape a URL with exponential backoff on failure.
-        Retry delays: 1s → 2s → 4s
-        """
-        attempt = 0
-        while attempt < max_attempts:
-            try:
-                # Enforce rate limit before making the request
-                self.enforce_rate_limit()
-
-                response = self.session.get(url, timeout=10)
-                response.raise_for_status()  
-
-                return response.text
-
-            except Exception as e:
-                wait_time = 2 ** attempt  
-                self.logger.warning(f"Attempt {attempt + 1} failed for {url}: {e}")
-                time.sleep(wait_time)
-                attempt += 1
-
-        self.logger.error(f"All {max_attempts} attempts failed for {url}")
-        return None
-
+    
     def validate_book_data(self, book):
         """
         Validate a book record before adding to results.
@@ -441,8 +434,13 @@ class AdvancedBookScraper:
         base_filename = f'task3_books'
         self.export_data(all_books, base_filename=base_filename)
 
-        # Generate summary report (could be extended to include more analysis)
+        # Generate summary report
         self.logger.info(f"SUMMARY REPORT. Total valid books collected: {len(all_books)}")
+        summary_report = {
+            'total_books': len(all_books),
+            'average_price': sum(b['price'] for b in all_books) / len(all_books) if all_books else 0,
+            'average_rating': sum(b['rating'] for b in all_books) / len(all_books) if all_books else 0,
+        }
         # highest rated book
         if all_books:
             highest_rated = max(all_books, key=lambda b: b['rating'])
@@ -462,7 +460,9 @@ class AdvancedBookScraper:
             # highest rated caregory
             highest_rated_category = max(category_ratings, key=lambda c: sum(category_ratings[c]) / len(category_ratings[c]))
             self.logger.info(f"Highest rated category: {highest_rated_category}")
-        return all_books
+        # log summary report
+        self.logger.info(f"Summary Report: {summary_report}")
+        return summary_report
 
 
 if __name__ == "__main__":
