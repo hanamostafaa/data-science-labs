@@ -1,0 +1,43 @@
+id,source,data_type,content,collected_at
+1,https://api.github.com/search/repositories,json,"[
+    {
+        ""name"": ""hello-algo"",
+        ""description"": ""《Hello 算法》：动画图解、一键运行的数据结构与算法教程。支持简中、繁中、English、日本語，提供 Python, Java, C++, C, C#, JS, Go, Swift, Rust, Ruby, Kotlin, TS, D"",
+        ""stars"": 122762,
+        ""forks"": 14870,
+        ""language"": ""Java"",
+        ""url"": ""https://github.com/krahets/hello-algo""
+    },
+    {
+        ""name"": ""free-programming-books-zh_CN"",
+        ""description"": "":books: 免费的计算机编程类中文书籍，欢迎投稿"",
+        ""stars"": 116412,
+        ""forks"": 28328,
+        ""language"": ""Unknown"",
+        ""url"": ""https://github.com/justjavac/free-programming-books-zh_CN""
+    },
+    {
+        ""name"": ""d2l-zh"",
+        ""description"": ""《动手学深度学习》：面向中文读者、能运行、可讨论。中英文版被70多个国家的500多所大学用于教学。"",
+        ""stars"": 76035,
+        ""forks"": 12143,
+        ""language"": ""Python"",
+        ""url"": ""https://github.com/d2l-ai/d2l-zh""
+    },
+    {
+        ""name"": ""python-guide"",
+        ""description"": ""Python best practices guidebook, written for humans. "",
+        ""stars"": 29541,
+        ""forks"": 5908,
+        ""language"": ""Batchfile"",
+        ""url"": ""https://github.com/realpython/python-guide""
+    },
+    {
+        ""name"": ""d2l-en"",
+        ""description"": ""Interactive deep learning book with multi-framework code, math, and discussions. Adopted at 500 universities from 70 cou"",
+        ""stars"": 28364,
+        ""forks"": 4983,
+        ""language"": ""Python"",
+        ""url"": ""https://github.com/d2l-ai/d2l-en""
+    }
+]",2026-03-07 22:58:02

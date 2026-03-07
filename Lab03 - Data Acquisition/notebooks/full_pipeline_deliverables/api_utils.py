@@ -11,24 +11,28 @@ from urllib3.util.retry import Retry
 
 def check_rate_limit(response):
     """
-    Print GitHub API rate limit information.
+    Check GitHub rate limit and sleep if necessary.
     """
-    if "X-RateLimit-Limit" in response.headers:
-        limit = int(response.headers["X-RateLimit-Limit"])
-        remaining = int(response.headers["X-RateLimit-Remaining"])
-        reset_timestamp = int(response.headers["X-RateLimit-Reset"])
 
-        reset_time = datetime.fromtimestamp(reset_timestamp)
+    if "X-RateLimit-Limit" not in response.headers:
+        return
 
-        print(f"Rate Limit: {remaining}/{limit}")
-        print(f"Resets at: {reset_time}")
+    limit = int(response.headers["X-RateLimit-Limit"])
+    remaining = int(response.headers["X-RateLimit-Remaining"])
+    reset_timestamp = int(response.headers["X-RateLimit-Reset"])
 
-        if remaining < 10:
-            print("⚠️ Warning: Low API quota")
+    now = int(time.time())
+    reset_time = datetime.fromtimestamp(reset_timestamp)
 
-        return remaining
+    print(f"Rate Limit: {remaining}/{limit}")
+    print(f"Reset Time: {reset_time}")
 
-    return None
+    if remaining == 0:
+        wait_seconds = max(reset_timestamp - now, 0)
+
+        print(f"⏰ Rate limit reached. Waiting {wait_seconds} seconds...")
+
+        time.sleep(wait_seconds + 1)
 
 
 # =========================================================
@@ -125,13 +129,13 @@ class GitHubAPIClient:
     def get(self, endpoint, params=None):
 
         self.rate_limiter.wait_if_needed()
-
+    
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
-
+    
         response = self.session.get(url, params=params, timeout=10)
-
+    
         check_rate_limit(response)
-
+    
         response.raise_for_status()
-
+    
         return response.json()

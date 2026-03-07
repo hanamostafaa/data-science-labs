@@ -1,0 +1,9 @@
+2026-03-08 00:58:01,460 - __main__ - INFO - Pipeline initialized
+2026-03-08 00:58:01,460 - __main__ - INFO - Collecting from database: library.db
+2026-03-08 00:58:01,460 - __main__ - INFO - Collected 3 records from database
+2026-03-08 00:58:01,527 - __main__ - INFO - Collecting from API: https://api.github.com/search/repositories
+2026-03-08 00:58:02,517 - __main__ - INFO - Collected 5 records
+2026-03-08 00:58:02,709 - __main__ - INFO - Scraping categories: ['Travel', 'Mystery']
+2026-03-08 00:58:08,885 - __main__ - INFO - Scraped 43 books from categories: ['Travel', 'Mystery']
+2026-03-08 00:58:08,900 - __main__ - INFO - Data exported to exports/
+2026-03-08 00:58:08,910 - __main__ - INFO - Pipeline closed

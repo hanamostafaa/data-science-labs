@@ -188,10 +188,10 @@ class DataCollectionPipeline:
                 for repo in data["items"]:
                     cleaned_data.append({
                         "name": repo.get("name"),
-                        "description": repo.get("description"),
+                        "description": (repo.get("description") or "")[:120],
                         "stars": repo.get("stargazers_count"),
                         "forks": repo.get("forks_count"),
-                        "language": repo.get("language"),
+                        "language": repo.get("language") or "Unknown",
                         "url": repo.get("html_url")
                     })
 
@@ -202,7 +202,7 @@ class DataCollectionPipeline:
                 INSERT INTO api_data (source, data_type, content)
                 VALUES (?, ?, ?)
             ''',
-                (url, 'json', json.dumps(cleaned_data)),
+                (url, 'json', json.dumps(cleaned_data, indent=4, ensure_ascii=False)),
             )  # json.dumps converts dict → string
             self.conn.commit()
 
@@ -214,7 +214,7 @@ class DataCollectionPipeline:
             self.logger.error(f"API error: {e}")
 
             self._log_collection("api", 0, "error", str(e))
-    
+
             return None
 
     # =========================================================================
