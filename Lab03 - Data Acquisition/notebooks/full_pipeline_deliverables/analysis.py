@@ -48,26 +48,37 @@ ORDER BY borrow_count DESC
 LIMIT 10
 """, conn)
 
-top_books.plot(kind="bar", x="title", y="borrow_count")
+top_books = top_books.sort_values("borrow_count")
+
+plt.figure()
+
+plt.barh(top_books["title"], top_books["borrow_count"])
+
 plt.title("Top 10 Most Borrowed Books")
-plt.ylabel("Borrow Count")
-plt.xlabel("Book Title")
-plt.xticks(rotation=45)
+plt.xlabel("Borrow Count")
+plt.ylabel("Book Title")
+
 plt.tight_layout()
 plt.savefig("graph2_top_borrowed_books.png")
 plt.clf()
 
 # -----------------------------
-# GRAPH 3 – Fine Patterns by membership type 
+# GRAPH 3 – avg fine by membership type 
 # -----------------------------
 fine_df = pd.read_sql_query("""
-SELECT m.membership_type, AVG(br.fine_amount) as avg_fine
-FROM borrowings br
-JOIN members m ON br.member_id = m.member_id
-GROUP BY m.membership_type
+WITH unique_members AS (
+    SELECT member_id, SUM(fine_amount) AS fines_per_member
+    FROM borrowings
+    GROUP BY member_id
+    HAVING SUM(fine_amount) > 0
+)
+SELECT membership_type, COUNT(*) AS total_members, SUM(fines_per_member) AS total_fines, AVG(fines_per_member) AS avg_fine_per_member
+FROM members m
+INNER JOIN unique_members u ON m.member_id = u.member_id
+GROUP BY membership_type
 """, conn)
 
-fine_df.plot(kind="bar", x="membership_type", y="avg_fine")
+fine_df.plot(kind="bar", x="membership_type", y="avg_fine_per_member")
 plt.title("Average Fine by Membership Type")
 plt.ylabel("Average Fine")
 plt.xlabel("Membership Type")
@@ -93,14 +104,11 @@ languages = []
 for row in api_df["content"]:
     data = json.loads(row)
 
-    for repo in data["items"]:
+    for repo in data:
         repos.append(repo["name"])
-        stars.append(repo["stargazers_count"])
-        lang = repo["language"]
-
-        if lang:  # ignore None values
-            languages.append(lang)
-
+        stars.append(repo["stars"])
+        languages.append(repo["language"])
+            
 
 # -----------------------------
 # GRAPH 4 – Top book-related repos 
@@ -111,12 +119,16 @@ repo_df = pd.DataFrame({
     "stars": stars
 })
 
-repo_df.plot(kind="bar", x="repo", y="stars")
+repo_df = repo_df.sort_values("stars")
+
+plt.figure()
+
+plt.barh(repo_df["repo"], repo_df["stars"])
 
 plt.title("Top Book-related GitHub Repositories by Stars")
-plt.xlabel("Repository")
-plt.ylabel("Stars")
-plt.xticks(rotation=45)
+plt.xlabel("Stars")
+plt.ylabel("Repository")
+
 plt.tight_layout()
 plt.savefig("graph4_github_popularity.png")
 plt.clf()
@@ -129,17 +141,20 @@ lang_df = pd.DataFrame(languages, columns=["language"])
 
 lang_counts = lang_df["language"].value_counts()
 
-lang_counts.plot(kind="bar")
+plt.figure()
+
+plt.pie(
+    lang_counts,
+    labels=lang_counts.index,
+    autopct="%1.1f%%",
+    startangle=140
+)
 
 plt.title("Programming Languages Used in Book-related GitHub Projects")
-plt.xlabel("Programming Language")
-plt.ylabel("Number of Repositories")
-plt.xticks(rotation=45)
-plt.tight_layout()
 
+plt.tight_layout()
 plt.savefig("graph5_github_languages.png")
 plt.clf()
-
 # -----------------------------
 # Analysis for data from scraping
 # -----------------------------
@@ -151,12 +166,18 @@ scraped_df = pd.read_sql_query("SELECT content FROM scraped_data", conn)
 
 prices = []
 ratings = []
+books = []
 
 for row in scraped_df["content"]:
     data = json.loads(row)
 
     price = data.get("price")
     rating = data.get("rating")
+    books.append({
+        "title": data.get("title"),
+        "rating": data.get("rating"),
+        "price": float(data.get("price"))
+    })
 
     if price and rating:
         prices.append(float(price))
@@ -169,16 +190,24 @@ price_df = pd.DataFrame({
 
 avg_price_rating = price_df.groupby("rating")["price"].mean().reset_index()
 
-avg_price_rating.plot(kind="bar", x="rating", y="price")
+avg_price_rating = avg_price_rating.sort_values("rating")
+
+plt.figure()
+
+plt.plot(
+    avg_price_rating["rating"],
+    avg_price_rating["price"],
+    marker="o"
+)
 
 plt.title("Average Book Price by Rating")
 plt.xlabel("Book Rating")
 plt.ylabel("Average Price (£)")
-plt.xticks(rotation=0)
-plt.tight_layout()
 
+plt.tight_layout()
 plt.savefig("graph6_price_by_rating.png")
 plt.clf()
+
 conn.close()
 
 print("Graphs generated successfully")
