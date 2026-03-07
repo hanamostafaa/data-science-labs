@@ -6,6 +6,7 @@ import time
 import json
 import os
 from book_scraper import CategoryScraper
+from api_utils import GitHubAPIClient
 
 # ─── Third-party imports (install via pip if needed) ─────────────────────────
 import requests
@@ -48,16 +49,18 @@ class DataCollectionPipeline:
         self._create_tables()  # Ensure all tables exist
 
         # ── Setup HTTP session ────────────────────────────────────────────────
-        # Using a Session object reuses TCP connections (faster than fresh requests)
         self.session = requests.Session()
-        self.session.headers.update(
-        {
-            "User-Agent": "BookMarketIntelligenceProject",
-            "Accept": "application/vnd.github+json"
-        })
+        self.api_client = GitHubAPIClient()
 
-        self.logger.info("Pipeline initialized")
+        # self.session.headers.update(
+        # {
+        #     "User-Agent": "BookMarketIntelligenceProject",
+        #     "Accept": "application/vnd.github+json"
+        # })
+
         self.scraper = CategoryScraper()  
+        self.logger.info("Pipeline initialized")
+
 
     def _create_tables(self):
         """
@@ -175,11 +178,22 @@ class DataCollectionPipeline:
         """
         self.logger.info(f"Collecting from API: {url}")
         try:
-            # timeout=10 prevents the pipeline from hanging indefinitely
-            response = self.session.get(url, params=params, timeout=10)
-            response.raise_for_status()  # Raises HTTPError for 4xx/5xx status codes
+            endpoint = url.replace("https://api.github.com/", "")
+            data = self.api_client.get(endpoint, params=params)
 
-            data = response.json()  # Parse JSON response body
+            cleaned_data = []
+
+            # clean data before saving it to conetnt 
+            if "items" in data:
+                for repo in data["items"]:
+                    cleaned_data.append({
+                        "name": repo.get("name"),
+                        "description": repo.get("description"),
+                        "stars": repo.get("stargazers_count"),
+                        "forks": repo.get("forks_count"),
+                        "language": repo.get("language"),
+                        "url": repo.get("html_url")
+                    })
 
             # Persist raw JSON to the database for later analysis
             cursor = self.conn.cursor()
@@ -188,18 +202,19 @@ class DataCollectionPipeline:
                 INSERT INTO api_data (source, data_type, content)
                 VALUES (?, ?, ?)
             ''',
-                (url, 'json', json.dumps(data)),
+                (url, 'json', json.dumps(cleaned_data)),
             )  # json.dumps converts dict → string
             self.conn.commit()
 
-            self.logger.info(f"Collected API data from {url}")
-            self._log_collection('api', 1, 'success')
+            self.logger.info(f"Collected {len(cleaned_data)} records")
+            self._log_collection("api", len(cleaned_data), "success")
             return data
 
         except Exception as e:
-            # Covers: network errors, timeouts, bad JSON, HTTP errors
             self.logger.error(f"API error: {e}")
-            self._log_collection('api', 0, 'error', str(e))
+
+            self._log_collection("api", 0, "error", str(e))
+    
             return None
 
     # =========================================================================
@@ -346,7 +361,7 @@ print("✅ DataCollectionPipeline class defined successfully!")
 pipeline = DataCollectionPipeline("market_intelligence.db")
 
 # ─── Step 1: Collect from a local SQLite database ─────────────────────────────
-# Total fines oer membership type 
+# Total fines per membership type 
 library_data = pipeline.collect_from_database(
     """
 WITH unique_members AS (SELECT member_id, SUM(fine_amount) as fines_per_member from borrowings group by member_id HAVING SUM(fine_amount) > 0)
