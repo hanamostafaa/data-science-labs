@@ -1,0 +1,9 @@
+2026-03-07 16:21:20,942 - __main__ - INFO - Pipeline initialized
+2026-03-07 16:21:20,942 - __main__ - INFO - Collecting from database: library.db
+2026-03-07 16:21:20,942 - __main__ - INFO - Collected 3 records from database
+2026-03-07 16:21:21,020 - __main__ - INFO - Collecting from API: https://api.github.com/search/repositories
+2026-03-07 16:21:21,977 - __main__ - INFO - Collected API data from https://api.github.com/search/repositories
+2026-03-07 16:21:22,060 - __main__ - INFO - Scraping: http://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html
+2026-03-07 16:21:22,570 - __main__ - INFO - Scraped data from http://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html
+2026-03-07 16:21:22,674 - __main__ - INFO - Data exported to exports/
+2026-03-07 16:21:22,677 - __main__ - INFO - Pipeline closed
