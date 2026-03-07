@@ -1,0 +1,3 @@
+Average price of travel books: 39.79
+Number of 5-star travel books: 1
+Percentage of books in stock: 100.00%

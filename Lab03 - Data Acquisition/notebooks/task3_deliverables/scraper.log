@@ -1,0 +1,19 @@
+2026-03-07 15:07:00,191 - WARNING - No progress file found or failed to load: [Errno 2] No such file or directory: 'scraped_data\\progress.json'
+2026-03-07 15:07:01,185 - INFO - Checked robots.txt for http://books.toscrape.com/catalogue/category/books/mystery_3/index.html: Allowed
+2026-03-07 15:07:01,185 - INFO - Starting scrape for category: Mystery
+2026-03-07 15:07:03,088 - INFO - Added 32 valid books from category 'Mystery'
+2026-03-07 15:07:03,089 - INFO - Progress saved to scraped_data\progress.json
+2026-03-07 15:07:03,658 - INFO - Checked robots.txt for http://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html: Allowed
+2026-03-07 15:07:03,658 - INFO - Starting scrape for category: Science Fiction
+2026-03-07 15:07:04,223 - INFO - Added 16 valid books from category 'Science Fiction'
+2026-03-07 15:07:04,224 - INFO - Progress saved to scraped_data\progress.json
+2026-03-07 15:07:04,705 - INFO - Checked robots.txt for http://books.toscrape.com/catalogue/category/books/fantasy_19/index.html: Allowed
+2026-03-07 15:07:04,705 - INFO - Starting scrape for category: Fantasy
+2026-03-07 15:07:08,097 - INFO - Added 48 valid books from category 'Fantasy'
+2026-03-07 15:07:08,099 - INFO - Progress saved to scraped_data\progress.json
+2026-03-07 15:07:08,497 - INFO - Data exported to books_20260307_150708.csv, .xlsx, and .json
+2026-03-07 15:07:08,497 - INFO - SUMMARY REPORT. Total valid books collected: 95
+2026-03-07 15:07:08,497 - INFO - Highest rated book: 'A Time of Torment (Charlie Parker #14)' with rating 5
+2026-03-07 15:07:08,497 - INFO - Most expensive book: 'Boar Island (Anna Pigeon #19)' at £59.48
+2026-03-07 15:07:08,497 - INFO - Lowest rated category: Science Fiction
+2026-03-07 15:07:08,497 - INFO - Highest rated category: Fantasy
