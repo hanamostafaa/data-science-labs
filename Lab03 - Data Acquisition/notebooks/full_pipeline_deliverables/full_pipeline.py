@@ -5,13 +5,12 @@ from datetime import datetime
 import time
 import json
 import os
+from book_scraper import CategoryScraper
 
 # ─── Third-party imports (install via pip if needed) ─────────────────────────
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-
-print("✅ All libraries imported successfully!")
 
 class DataCollectionPipeline:
     """
@@ -58,6 +57,7 @@ class DataCollectionPipeline:
         })
 
         self.logger.info("Pipeline initialized")
+        self.scraper = CategoryScraper()  
 
     def _create_tables(self):
         """
@@ -90,6 +90,18 @@ class DataCollectionPipeline:
                 title      TEXT,
                 content    TEXT,          -- JSON-encoded dict of scraped fields
                 scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        '''
+        )
+        # create books table
+        cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS books (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                rating REAL,
+                price REAL,
+                availability TEXT
             )
         '''
         )
@@ -194,58 +206,41 @@ class DataCollectionPipeline:
     # WEB SCRAPING METHODS
     # =========================================================================
 
-    def collect_from_web(self, url, selectors):
+    def collect_from_web(self, categories, max_pages_per_category=None):
         """
-        Scrape structured data from a webpage using CSS selectors.
-
-        Args:
-            url (str):        Page URL to scrape.
-            selectors (dict): Mapping of field name → CSS selector string.
-
-        Example selectors:
-            selectors = {
-                'title':       'h1.title',
-                'price':       'span.price',
-                'description': 'p.desc'
-            }
-
-        Returns:
-            dict: {field: scraped_text}. Values are None if selector not found.
+        uses category scraper
         """
-        self.logger.info(f"Scraping: {url}")
-        try:
-            response = self.session.get(url, timeout=10)
-            response.raise_for_status()
 
-            # Parse HTML with lxml (faster than html.parser; pip install lxml)
-            soup = BeautifulSoup(response.text, 'lxml')
+        self.logger.info(f"Scraping categories: {categories}")
+        books = []
+        for cat in categories:
+            try:
+                url, cat_books = self.scraper.scrape_category(cat, max_pages=max_pages_per_category)
+                books.extend(cat_books)
+            except Exception as e:
+                self.logger.error(f"Error scraping category '{cat}': {e}")
 
-            # Extract each field using its CSS selector
-            data = {}
-            for field, selector in selectors.items():
-                element = soup.select_one(selector)  # Returns first match or None
-                data[field] = element.get_text(strip=True) if element else None
-                # strip=True removes leading/trailing whitespace from text
-
-            # Persist to database: store full data dict as JSON in 'content' column
+        for book in books:
             cursor = self.conn.cursor()
+            cursor.execute(
+                '''
+                INSERT INTO books (title, rating, price, availability)
+                VALUES (?, ?, ?, ?)
+            ''',
+                (book['title'], book['rating'], book['price'], book['availability']),
+            )
             cursor.execute(
                 '''
                 INSERT INTO scraped_data (url, title, content)
                 VALUES (?, ?, ?)
             ''',
-                (url, data.get('title'), json.dumps(data)),
+                (url, book.get('title'), json.dumps(book)),
             )
-            self.conn.commit()
-
-            self.logger.info(f"Scraped data from {url}")
-            self._log_collection('web', 1, 'success')
-            return data
-
-        except Exception as e:
-            self.logger.error(f"Scraping error: {e}")
-            self._log_collection('web', 0, 'error', str(e))
-            return {}  # Return empty dict instead of None for safe iteration
+            self._log_collection('web', 1, 'success')  # Log each successful book scrape
+            
+        self.conn.commit()
+        self.logger.info(f"Scraped {len(books)} books from categories: {categories}")
+        return books
 
     # =========================================================================
     # UTILITY METHODS
@@ -378,13 +373,8 @@ github_data = pipeline.collect_from_api(
 # ─── Step 3: Scrape structured data from a webpage ───────────────────────────
 # CSS selectors map field names to HTML elements on the target page
 book_data = pipeline.collect_from_web(
-    'http://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html',
-    {
-        'title': 'h1',  # Book title in <h1>
-        'price': '.price_color',  # Price in element with class 'price_color'
-        'availability': '.availability',  # In-stock status
-        'description': '#product_description ~ p',  # Sibling <p> after #product_description
-    },
+    categories=['Travel', 'Mystery'], 
+    max_pages_per_category=2,  
 )
 
 # ─── Step 4: Print collection statistics ─────────────────────────────────────
