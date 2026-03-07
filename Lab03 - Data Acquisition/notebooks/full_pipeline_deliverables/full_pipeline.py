@@ -388,6 +388,9 @@ print(stats['logs'])
 # ─── Step 5: Export all collected data to CSV ─────────────────────────────────
 # Creates: exports/api_data.csv, exports/scraped_data.csv, exports/pipeline_logs.csv
 pipeline.export_all_data()
+# checking books were stored fine
+df = pd.read_sql_query("SELECT * FROM books LIMIT 10", pipeline.conn)
+print(df)
 
 # ─── Step 6: Close the pipeline ───────────────────────────────────────────────
 # Always close to release the database file lock
