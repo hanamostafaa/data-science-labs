@@ -392,7 +392,7 @@ github_data = pipeline.collect_from_api(
 # ─── Step 3: Scrape structured data from a webpage ───────────────────────────
 # CSS selectors map field names to HTML elements on the target page
 book_data = pipeline.collect_from_web(
-    categories=['Travel', 'Mystery'], 
+    categories=['Travel', 'Mystery', 'Historical Fiction', 'Science Fiction', 'Fantasy', 'Romance'],  
     max_pages_per_category=2,  
 )
 
