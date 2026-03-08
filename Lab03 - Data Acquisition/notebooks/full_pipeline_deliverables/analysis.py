@@ -102,12 +102,11 @@ stars = []
 languages = []
 
 for row in api_df["content"]:
-    data = json.loads(row)
+    repo = json.loads(row)
 
-    for repo in data:
-        repos.append(repo["name"])
-        stars.append(repo["stars"])
-        languages.append(repo["language"])
+    repos.append(repo["name"])
+    stars.append(repo["stars"])
+    languages.append(repo["language"])
             
 
 # -----------------------------
@@ -119,13 +118,13 @@ repo_df = pd.DataFrame({
     "stars": stars
 })
 
-repo_df = repo_df.sort_values("stars")
+repo_df = repo_df.sort_values("stars")[:5]
 
 plt.figure()
 
 plt.barh(repo_df["repo"], repo_df["stars"])
 
-plt.title("Top Book-related GitHub Repositories by Stars")
+plt.title("Top 5 Book-related GitHub Repositories by Stars")
 plt.xlabel("Stars")
 plt.ylabel("Repository")
 
