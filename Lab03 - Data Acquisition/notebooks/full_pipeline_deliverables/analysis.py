@@ -158,29 +158,35 @@ plt.clf()
 # Analysis for data from scraping
 # -----------------------------
 
-# -----------------------------
-# GRAPH 6 – Prices
-# -----------------------------
 scraped_df = pd.read_sql_query("SELECT content FROM scraped_data", conn)
 
 prices = []
 ratings = []
 books = []
+categories = []
 
 for row in scraped_df["content"]:
     data = json.loads(row)
 
     price = data.get("price")
     rating = data.get("rating")
+    category = data.get("category")
     books.append({
         "title": data.get("title"),
         "rating": data.get("rating"),
-        "price": float(data.get("price"))
+        "price": float(data.get("price")),
+        "category": category
     })
 
     if price and rating:
         prices.append(float(price))
         ratings.append(rating)
+        categories.append(category)
+
+
+# -----------------------------
+# GRAPH 6 – Prices
+# -----------------------------
 
 price_df = pd.DataFrame({
     "price": prices,
@@ -205,6 +211,54 @@ plt.ylabel("Average Price (£)")
 
 plt.tight_layout()
 plt.savefig("graph6_price_by_rating.png")
+plt.clf()
+
+# -----------------------------
+# GRAPH 7 – Genres 
+# -----------------------------
+
+genre_df = pd.DataFrame({
+    "category": categories,
+    "rating": ratings
+})
+
+avg_genre_rating = genre_df.groupby("category")["rating"].mean().reset_index()
+
+avg_genre_rating = avg_genre_rating.sort_values("rating")
+
+plt.figure()
+
+plt.bar(
+    avg_genre_rating["category"],
+    avg_genre_rating["rating"]
+)
+
+plt.title("Average Book Rating by Category")
+plt.xlabel("Catgeory")
+plt.ylabel("Average Rating")
+
+plt.tight_layout()
+plt.savefig("graph7_rating_by_category.png")
+plt.clf()
+
+# =====================================================
+# GRAPH 8: Genre distribution
+# =====================================================
+
+genre_counts = genre_df["category"].value_counts()
+
+plt.figure()
+
+plt.pie(
+    genre_counts.values,
+    labels=genre_counts.index,
+    autopct="%1.1f%%"
+)
+
+plt.title("Book Distribution by Genre")
+
+plt.tight_layout()
+plt.savefig("graph8_genre_distribution.png")
 plt.clf()
 
 conn.close()
