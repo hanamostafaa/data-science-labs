@@ -179,31 +179,35 @@ class DataCollectionPipeline:
         self.logger.info(f"Collecting from API: {url}")
         try:
             endpoint = url.replace("https://api.github.com/", "")
-            data = self.api_client.get(endpoint, params=params)
+            data = self.api_client.get_paginated(endpoint, params=params)
 
             cleaned_data = []
 
             # clean data before saving it to conetnt 
-            if "items" in data:
-                for repo in data["items"]:
-                    cleaned_data.append({
-                        "name": repo.get("name"),
-                        "description": (repo.get("description") or "")[:120],
-                        "stars": repo.get("stargazers_count"),
-                        "forks": repo.get("forks_count"),
-                        "language": repo.get("language") or "Unknown",
-                        "url": repo.get("html_url")
-                    })
+            for repo in data:
+                cleaned_data.append({
+                    "name": repo.get("name"),
+                    "description": (repo.get("description") or "")[:120],
+                    "stars": repo.get("stargazers_count"),
+                    "forks": repo.get("forks_count"),
+                    "language": repo.get("language") or "Unknown",
+                    "url": repo.get("html_url")
+                })
 
             # Persist raw JSON to the database for later analysis
             cursor = self.conn.cursor()
-            cursor.execute(
-                '''
-                INSERT INTO api_data (source, data_type, content)
-                VALUES (?, ?, ?)
-            ''',
-                (url, 'json', json.dumps(cleaned_data, indent=4, ensure_ascii=False)),
-            )  # json.dumps converts dict → string
+            for repo in cleaned_data:
+                cursor.execute(
+                    '''
+                    INSERT INTO api_data (source, data_type, content)
+                    VALUES (?, ?, ?)
+                    ''',
+                    (
+                        url,
+                        'json',
+                        json.dumps(repo, ensure_ascii=False)
+                    )
+                )
             self.conn.commit()
 
             self.logger.info(f"Collected {len(cleaned_data)} records")

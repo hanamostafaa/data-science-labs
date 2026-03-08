@@ -139,3 +139,48 @@ class GitHubAPIClient:
         response.raise_for_status()
     
         return response.json()
+    
+    def get_paginated(self, endpoint, params=None, max_pages=5):
+        """
+        Fetch paginated results from GitHub API.
+
+        Args:
+            endpoint (str): API endpoint
+            params (dict): query parameters
+            max_pages (int): maximum pages to fetch
+
+        Returns:
+            list: combined results from all pages
+        """
+
+        all_results = []
+        page = 1
+
+        params = params or {}
+
+        while page <= max_pages:
+
+            print(f"Fetching page {page}...")
+
+            params["page"] = page
+            params["per_page"] = 5
+
+            data = self.get(endpoint, params=params)
+
+            if not data:
+                print("No more results.")
+                break
+
+            if isinstance(data, dict) and "items" in data:
+                results = data["items"]
+            else:
+                results = data
+
+            if not results:
+                break
+
+            all_results.extend(results)
+
+            page += 1
+
+        return all_results
