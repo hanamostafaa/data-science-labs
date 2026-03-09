@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 import json
 from collections import deque
 import os
@@ -10,6 +9,22 @@ from urllib.parse import urljoin, urlparse
 from urllib.robotparser import RobotFileParser
 import pandas as pd
 import matplotlib.pyplot as plt
+from urllib3 import Retry
+from requests.adapters import HTTPAdapter
+
+# reused in all tasks
+def parse_book(article):
+    book = {}
+    title_element = article.select_one('h3 a')
+    book['title'] = title_element.get('title')
+    price_text = article.select_one('.price_color').text
+    book['price'] = float(price_text.replace('Â£', ''))
+    book['availability'] = 'In stock' in article.select_one('.availability').text.strip()
+    rating_element = article.select_one('.star-rating')
+    rating_text = rating_element.get('class')[1]  
+    rating_map = {'One': 1, 'Two': 2, 'Three': 3, 'Four': 4, 'Five': 5}
+    book['rating'] = rating_map.get(rating_text, 0)
+    return book
 
 # task 1 
 def scrape_travel_books():
@@ -36,17 +51,7 @@ def scrape_travel_books():
         response.raise_for_status()  
         soup = BeautifulSoup(response.text, 'lxml') 
         for article in soup.select('article.product_pod'):
-            book = {}
-            title_element = article.select_one('h3 a')
-            book['title'] = title_element.get('title')
-            price_text = article.select_one('.price_color').text
-            book['price'] = float(price_text.replace('Â£', ''))
-            availability = article.select_one('.availability').text.strip()
-            book['availability'] = 'In stock' in availability
-            rating_element = article.select_one('.star-rating')
-            rating_text = rating_element.get('class')[1]  
-            rating_map = {'One': 1, 'Two': 2, 'Three': 3, 'Four': 4, 'Five': 5}
-            book['rating'] = rating_map.get(rating_text, 0)
+            book = parse_book(article)
             books.append(book)
         next_link = soup.select_one('.next a')
         url = urljoin(url, next_link['href']) if next_link else None
@@ -69,7 +74,7 @@ class CategoryScraper:
         self.session.headers.update(
             {'User-Agent': 'Mozilla/5.0 (Educational Purpose) CategoryScraper/1.0'}
         )
-    def _get_category_url(self, category_name):
+    def get_category_url(self, category_name):
 
         url = self.base_url + "/index.html"
         response = self.session.get(url, timeout=10)
@@ -95,7 +100,7 @@ class CategoryScraper:
             list: Book dictionaries
         """
         # Your code
-        category_url = self._get_category_url(category_name)
+        category_url = self.get_category_url(category_name)
         if not category_url:
             print(f"Category '{category_name}' not found.")
             return []
@@ -108,18 +113,8 @@ class CategoryScraper:
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'lxml')
             for article in soup.select('article.product_pod'):
-                book = {}
-                title_element = article.select_one('h3 a')
-                book['title'] = title_element.get('title')
-                price_text = article.select_one('.price_color').text
-                book['price'] = float(price_text.replace('Â£', ''))
-                rating_element = article.select_one('.star-rating')
-                rating_text = rating_element.get('class')[1]
-                rating_map = {'One': 1, 'Two': 2, 'Three': 3, 'Four': 4, 'Five': 5}
-                book['rating'] = rating_map.get(rating_text, 0)
+                book = parse_book(article)
                 book['category'] = category_name
-                availability = article.select_one('.availability').text.strip()
-                book['availability'] = 'In stock' in availability
                 books.append(book)
             next_link = soup.select_one('.next a')
             url = urljoin(url, next_link['href']) if next_link else None
@@ -135,14 +130,12 @@ class CategoryScraper:
         Returns:
             DataFrame with all books
         """
-        df_all = pd.DataFrame()
+        dfs = []
         for cat in categories:
-            print(f"Scraping category: {cat}")
-            _,cat_list = self.scrape_category(cat)
-            df_cat = pd.DataFrame(cat_list)
-            df_all = pd.concat([df_all, df_cat], ignore_index=True)
-        return df_all
-            
+            _, cat_list = self.scrape_category(cat)
+            dfs.append(pd.DataFrame(cat_list))
+
+        return pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
 
     def compare_categories(self, df):
         """
@@ -172,6 +165,8 @@ class CategoryScraper:
             'stock_percentage': (grouped['in_stock_percent'] * 100).to_dict()
         }
 # task 3
+
+
 class AdvancedBookScraper:
     """
     Production-ready book scraper with logging, rate limiting, and error recovery.
@@ -184,6 +179,7 @@ class AdvancedBookScraper:
         # Setup file-based logging — all events will be written to scraper.log
         logging.basicConfig(
             filename='scraper.log',
+            filemode='w',  # overwrite log each run
             level=logging.INFO,
             format='%(asctime)s - %(levelname)s - %(message)s',
         )
@@ -197,15 +193,24 @@ class AdvancedBookScraper:
         self.session.headers.update(
             {'User-Agent': 'Mozilla/5.0 (Educational Purpose) AdvancedBookScraper/1.0'}
         )
+        retry_strategy = Retry(
+            total=3,  # Total retry attempts
+            backoff_factor=1,  # Exponential backoff: 1s → 2s → 4s
+            status_forcelist=[429, 500, 502, 503, 504],  # Retry on these HTTP status codes
+            allowed_methods=["HEAD", "GET", "OPTIONS", "POST"]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
         self.rate_limit = 10  # max requests per minute
         self.time_window = 60  # seconds
         self.request_times = deque()
         self.progress = {}
-        # self.category_scraper = CategoryScraper()  
-        # self.category_scraper.session = self.session
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)  # create output directory if it doesn't exist
         self.base_url = 'http://books.toscrape.com'
+        self.category_scraper = CategoryScraper()
+        self.category_scraper.session = self.session  
     
 
 
@@ -230,60 +235,41 @@ class AdvancedBookScraper:
 
         except Exception as e:
             self.logger.warning(f"Could not read robots.txt for {url}: {e}")
-            return False # should i proceed anyway ?
-    def _get_category_url(self, category_name):
+            return False 
 
-        url = self.base_url + "/index.html"
-        response = self.session.get(url)
-        soup = BeautifulSoup(response.text, "lxml")
-
-        categories = soup.select(".side_categories a")
-
-        for cat in categories:
-            name = cat.text.strip().lower()
-            if name == category_name.lower():
-                return self.base_url + "/" + cat["href"]
-
-        return None
-    def scrape_category(self, category_name, max_pages=2):
+    def scrape_category(self, category_name, category_url, max_pages=2):
         """
         Scrape books from a category.
 
         Args:
             category_name: Category to scrape
+            category_url: URL of the category page to start scraping
             max_pages:     Maximum pages to scrape
 
         Returns:
             list: Book dictionaries
         """
         # Your code
-        category_url = self._get_category_url(category_name)
         if not category_url:
-            print(f"Category '{category_name}' not found.")
+            self.logger.warning(f"Category '{category_name}' not found.")
             return []
-        print(f"Scraping category '{category_name}' from {category_url}...")
+        self.logger.info(f"Scraping category '{category_name}' from {category_url}...")
         books = []
         url = category_url
         page = 1
         while url and (max_pages is None or page <= max_pages):
-            response_text = self.scrape_with_retry(url)
-            if not response_text:
-                self.logger.warning(f"Failed to scrape category '{category_name}' page {page}")
+            try:
+                self.enforce_rate_limit()
+                response = self.session.get(url, timeout=10)
+                response.raise_for_status()
+                response_text = response.text
+            except Exception as e:
+                self.logger.warning(f"Failed to scrape category '{category_name}' page {page}: {e}")
                 break
             soup = BeautifulSoup(response_text, 'lxml')
             for article in soup.select('article.product_pod'):
-                book = {}
-                title_element = article.select_one('h3 a')
-                book['title'] = title_element.get('title')
-                price_text = article.select_one('.price_color').text
-                book['price'] = float(price_text.replace('Â£', ''))
-                rating_element = article.select_one('.star-rating')
-                rating_text = rating_element.get('class')[1]
-                rating_map = {'One': 1, 'Two': 2, 'Three': 3, 'Four': 4, 'Five': 5}
-                book['rating'] = rating_map.get(rating_text, 0)
+                book = parse_book(article)
                 book['category'] = category_name
-                availability = article.select_one('.availability').text.strip()
-                book['availability'] = 'In stock' in availability
                 books.append(book)
             next_link = soup.select_one('.next a')
             url = urljoin(url, next_link['href']) if next_link else None
@@ -307,32 +293,7 @@ class AdvancedBookScraper:
 
         # record the current request time
         self.request_times.append(time.time())
-
-    def scrape_with_retry(self, url, max_attempts=3):
-        """
-        Scrape a URL with exponential backoff on failure.
-        Retry delays: 1s → 2s → 4s
-        """
-        attempt = 0
-        while attempt < max_attempts:
-            try:
-                # Enforce rate limit before making the request
-                self.enforce_rate_limit()
-
-                response = self.session.get(url, timeout=10)
-                response.raise_for_status()  
-
-                return response.text
-
-            except Exception as e:
-                wait_time = 2 ** attempt  
-                self.logger.warning(f"Attempt {attempt + 1} failed for {url}: {e}")
-                time.sleep(wait_time)
-                attempt += 1
-
-        self.logger.error(f"All {max_attempts} attempts failed for {url}")
-        return None
-
+    
     def validate_book_data(self, book):
         """
         Validate a book record before adding to results.
@@ -414,7 +375,8 @@ class AdvancedBookScraper:
         all_books = self.load_progress()
 
         for category in categories:
-            category_url = self._get_category_url(category)
+            self.enforce_rate_limit()
+            category_url = self.category_scraper.get_category_url(category)
             if not category_url:
                 self.logger.warning(f"Category '{category}' not found. Skipping.")
                 continue
@@ -424,7 +386,7 @@ class AdvancedBookScraper:
                 continue
 
             self.logger.info(f"Starting scrape for category: {category}")
-            books = self.scrape_category(category, max_pages=max_pages_per_category)
+            books = self.scrape_category(category,category_url, max_pages=max_pages_per_category)
 
             # validate books
             valid_books = [b for b in books if self.validate_book_data(b)]
@@ -441,8 +403,13 @@ class AdvancedBookScraper:
         base_filename = f'task3_books'
         self.export_data(all_books, base_filename=base_filename)
 
-        # Generate summary report (could be extended to include more analysis)
+        # Generate summary report
         self.logger.info(f"SUMMARY REPORT. Total valid books collected: {len(all_books)}")
+        summary_report = {
+            'total_books': len(all_books),
+            'average_price': sum(b['price'] for b in all_books) / len(all_books) if all_books else 0,
+            'average_rating': sum(b['rating'] for b in all_books) / len(all_books) if all_books else 0,
+        }
         # highest rated book
         if all_books:
             highest_rated = max(all_books, key=lambda b: b['rating'])
@@ -462,24 +429,22 @@ class AdvancedBookScraper:
             # highest rated caregory
             highest_rated_category = max(category_ratings, key=lambda c: sum(category_ratings[c]) / len(category_ratings[c]))
             self.logger.info(f"Highest rated category: {highest_rated_category}")
-        return all_books
+        # log summary report
+        self.logger.info(f"Summary Report: {summary_report}")
+        return summary_report
 
 
 if __name__ == "__main__":
+
     # task 1
     travel_books_df = scrape_travel_books()
     print(travel_books_df.head())
+
     # analysis questions
-
     avg_price = travel_books_df['price'].mean()
-
-
     five_star_count = (travel_books_df['rating'] == 5).sum()
-
-
     in_stock_count = travel_books_df['availability'].sum()
-    total_books = len(travel_books_df)
-    in_stock_percentage = (in_stock_count / total_books) * 100
+    in_stock_percentage = (in_stock_count / len(travel_books_df)) * 100
 
 
     with open("task1_analysis.txt", "w") as f:
@@ -487,9 +452,6 @@ if __name__ == "__main__":
         f.write(f"Number of 5-star travel books: {five_star_count}\n")
         f.write(f"Percentage of books in stock: {in_stock_percentage:.2f}%\n")
 
-    print("Average price:", avg_price)
-    print("5-star books:", five_star_count)
-    print("In-stock percentage:", in_stock_percentage)
     
     # task 2
     categories = ['Fiction', 'Mystery', 'Historical Fiction', 'Science Fiction']
@@ -498,15 +460,12 @@ if __name__ == "__main__":
     # save to csv
     df.to_csv('task2_categories.csv', index=False)
     comparison = scraper.compare_categories(df)
-    print("Comparison results:")
-    print(comparison)
-
+    print(f"Comparison results: {comparison}")
 
     comparison_df = comparison["table"]
 
     fig, axes = plt.subplots(2, 1, figsize=(8, 10))
-
-    # -avg rating
+    # avg rating
     comparison_df['avg_rating'].plot(
         kind='bar',
         ax=axes[0],
