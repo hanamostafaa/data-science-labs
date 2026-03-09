@@ -228,7 +228,7 @@ class DataCollectionPipeline:
                         INSERT INTO books (title, rating, available, category, price)
                         VALUES (?, ?, ?, ?, ?)
                     ''',
-                        (book.get('title'), book.get('rating'), book.get('available'), cat, book.get('price')),
+                        (book.get('title'), book.get('rating'), book.get('availability'), cat, book.get('price')),
                     )
                 self.conn.commit()
 
