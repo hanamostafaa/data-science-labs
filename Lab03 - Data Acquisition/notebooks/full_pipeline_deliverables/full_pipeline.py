@@ -50,13 +50,7 @@ class DataCollectionPipeline:
 
         # ── Setup HTTP session ────────────────────────────────────────────────
         self.session = requests.Session()
-        self.api_client = GitHubAPIClient()
-
-        # self.session.headers.update(
-        # {
-        #     "User-Agent": "BookMarketIntelligenceProject",
-        #     "Accept": "application/vnd.github+json"
-        # })
+        self.api_client = GitHubAPIClient(self.logger)
 
         self.scraper = CategoryScraper()  
         self.logger.info("Pipeline initialized")

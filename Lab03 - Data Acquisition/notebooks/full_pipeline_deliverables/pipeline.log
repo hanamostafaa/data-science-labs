@@ -1,9 +1,15 @@
-2026-03-08 14:58:29,938 - __main__ - INFO - Pipeline initialized
-2026-03-08 14:58:29,939 - __main__ - INFO - Collecting from database: library.db
-2026-03-08 14:58:29,939 - __main__ - INFO - Collected 3 records from database
-2026-03-08 14:58:30,109 - __main__ - INFO - Collecting from API: https://api.github.com/search/repositories
-2026-03-08 14:59:13,534 - __main__ - INFO - Collected 25 records
-2026-03-08 14:59:13,617 - __main__ - INFO - Scraping categories: ['Travel', 'Mystery']
-2026-03-08 14:59:21,150 - __main__ - INFO - Scraped 43 books from categories: ['Travel', 'Mystery']
-2026-03-08 14:59:21,163 - __main__ - INFO - Data exported to exports/
-2026-03-08 14:59:21,168 - __main__ - INFO - Pipeline closed
+2026-03-09 03:40:57,168 - __main__ - INFO - Pipeline initialized
+2026-03-09 03:40:57,168 - __main__ - INFO - Collecting from database: library.db
+2026-03-09 03:40:57,168 - __main__ - INFO - Collected 3 records from database
+2026-03-09 03:40:57,246 - __main__ - INFO - Collecting from API: https://api.github.com/search/repositories
+2026-03-09 03:41:01,021 - __main__ - INFO - Rate Limit: 4/10, resets at 2026-03-09 03:41:40
+2026-03-09 03:41:02,677 - __main__ - INFO - Rate Limit: 3/10, resets at 2026-03-09 03:41:40
+2026-03-09 03:41:04,384 - __main__ - INFO - Rate Limit: 2/10, resets at 2026-03-09 03:41:40
+2026-03-09 03:41:06,055 - __main__ - INFO - Rate Limit: 1/10, resets at 2026-03-09 03:41:40
+2026-03-09 03:41:07,850 - __main__ - INFO - Rate Limit: 0/10, resets at 2026-03-09 03:41:40
+2026-03-09 03:41:07,850 - __main__ - WARNING - Rate limit reached. Sleeping 33s...
+2026-03-09 03:41:41,946 - __main__ - INFO - Collected 25 records
+2026-03-09 03:41:42,004 - __main__ - INFO - Scraping categories: ['Travel', 'Mystery', 'Historical Fiction', 'Science Fiction', 'Fantasy', 'Romance']
+2026-03-09 03:42:26,127 - __main__ - INFO - Scraped 160 books from categories: ['Travel', 'Mystery', 'Historical Fiction', 'Science Fiction', 'Fantasy', 'Romance']
+2026-03-09 03:42:26,150 - __main__ - INFO - Data exported to exports/
+2026-03-09 03:42:26,157 - __main__ - INFO - Pipeline closed
