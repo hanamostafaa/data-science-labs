@@ -1,24 +1,41 @@
-2026-03-06 00:44:41,989 - INFO - Fetched repo: tensorflow/tensorflow
-2026-03-06 00:44:42,511 - INFO - Fetched repo: pytorch/pytorch
-2026-03-06 00:44:43,221 - INFO - Fetched repo: scikit-learn/scikit-learn
-2026-03-06 00:44:43,231 - INFO - Calculated repo metrics and saved task1_metrics.csv
-2026-03-06 00:44:47,503 - INFO - task1_comparison.png saved successfully \u2713
-2026-03-06 00:44:47,504 - INFO - Fetching page 1 for user torvalds...
-2026-03-06 00:44:49,283 - INFO - Fetching page 2 for user torvalds...
-2026-03-06 00:44:49,940 - INFO - No more results!
-2026-03-06 00:44:49,940 - INFO - Fetched all repos for user torvalds, saved to task2_all_repos.csv
-2026-03-06 00:44:49,950 - INFO - Analysis complete. Summary saved to task2_analysis.txt
-2026-03-06 00:44:51,799 - INFO - GET /search/repositories - Status: 200
-2026-03-06 00:44:51,809 - INFO - Search completed: data science
-2026-03-06 00:44:52,538 - INFO - GET /search/repositories - Status: 200
-2026-03-06 00:44:52,926 - INFO - GET /repos/tensorflow/tensorflow - Status: 200
-2026-03-06 00:44:52,928 - INFO - Compared repo: tensorflow/tensorflow
-2026-03-06 00:44:53,239 - INFO - GET /repos/pytorch/pytorch - Status: 200
-2026-03-06 00:44:53,239 - INFO - Compared repo: pytorch/pytorch
-2026-03-06 00:44:53,537 - INFO - GET /repos/scikit-learn/scikit-learn - Status: 200
-2026-03-06 00:44:53,537 - INFO - Compared repo: scikit-learn/scikit-learn
-2026-03-06 00:44:53,847 - INFO - GET /repos/keras-team/keras - Status: 200
-2026-03-06 00:44:53,847 - INFO - Compared repo: keras-team/keras
-2026-03-06 00:44:54,182 - INFO - GET /repos/apache/spark - Status: 200
-2026-03-06 00:44:54,183 - INFO - Compared repo: apache/spark
-2026-03-06 00:44:54,406 - INFO - task3_results.xlsx exported successfully
+2026-03-09 02:49:47,261 - __main__ - INFO - Attempt 1/3: GET https://api.github.com/repos/tensorflow/tensorflow
+2026-03-09 02:49:48,067 - __main__ - INFO - Success: https://api.github.com/repos/tensorflow/tensorflow
+2026-03-09 02:49:48,067 - __main__ - INFO - Fetched repo: tensorflow/tensorflow
+2026-03-09 02:49:48,067 - __main__ - INFO - Attempt 1/3: GET https://api.github.com/repos/pytorch/pytorch
+2026-03-09 02:49:48,857 - __main__ - INFO - Success: https://api.github.com/repos/pytorch/pytorch
+2026-03-09 02:49:48,857 - __main__ - INFO - Fetched repo: pytorch/pytorch
+2026-03-09 02:49:48,867 - __main__ - INFO - Attempt 1/3: GET https://api.github.com/repos/scikit-learn/scikit-learn
+2026-03-09 02:49:49,608 - __main__ - INFO - Success: https://api.github.com/repos/scikit-learn/scikit-learn
+2026-03-09 02:49:49,618 - __main__ - INFO - Fetched repo: scikit-learn/scikit-learn
+2026-03-09 02:49:49,628 - __main__ - INFO - Calculated repo metrics and saved task1_metrics.csv
+2026-03-09 02:49:51,927 - __main__ - INFO - task1_comparison.png saved successfully ✓
+2026-03-09 02:49:51,927 - __main__ - INFO - Fetching page 1 for user torvalds...
+2026-03-09 02:49:51,927 - __main__ - INFO - Attempt 1/3: GET https://api.github.com/users/torvalds/repos
+2026-03-09 02:49:52,700 - __main__ - INFO - Success: https://api.github.com/users/torvalds/repos
+2026-03-09 02:49:53,707 - __main__ - INFO - Fetching page 2 for user torvalds...
+2026-03-09 02:49:53,707 - __main__ - INFO - Attempt 1/3: GET https://api.github.com/users/torvalds/repos
+2026-03-09 02:49:54,345 - __main__ - INFO - Success: https://api.github.com/users/torvalds/repos
+2026-03-09 02:49:54,345 - __main__ - INFO - No more results!
+2026-03-09 02:49:54,355 - __main__ - INFO - Fetched all repos for user torvalds, saved to task2_all_repos.csv
+2026-03-09 02:49:54,355 - __main__ - INFO - Analysis complete. Summary saved to task2_analysis.txt
+2026-03-09 02:49:54,355 - __main__ - INFO - Attempt 1/3: GET https://api.github.com/search/repositories
+2026-03-09 02:49:55,619 - __main__ - INFO - Success: https://api.github.com/search/repositories
+2026-03-09 02:49:55,619 - __main__ - INFO - Search completed: data science
+2026-03-09 02:49:55,619 - __main__ - INFO - Attempt 1/3: GET https://api.github.com/search/repositories
+2026-03-09 02:49:56,944 - __main__ - INFO - Success: https://api.github.com/search/repositories
+2026-03-09 02:49:56,946 - __main__ - INFO - Attempt 1/3: GET https://api.github.com/repos/tensorflow/tensorflow
+2026-03-09 02:49:57,219 - __main__ - INFO - Success: https://api.github.com/repos/tensorflow/tensorflow
+2026-03-09 02:49:57,219 - __main__ - INFO - Compared repo: tensorflow/tensorflow
+2026-03-09 02:49:57,219 - __main__ - INFO - Attempt 1/3: GET https://api.github.com/repos/pytorch/pytorch
+2026-03-09 02:49:57,530 - __main__ - INFO - Success: https://api.github.com/repos/pytorch/pytorch
+2026-03-09 02:49:57,530 - __main__ - INFO - Compared repo: pytorch/pytorch
+2026-03-09 02:49:57,530 - __main__ - INFO - Attempt 1/3: GET https://api.github.com/repos/scikit-learn/scikit-learn
+2026-03-09 02:49:57,805 - __main__ - INFO - Success: https://api.github.com/repos/scikit-learn/scikit-learn
+2026-03-09 02:49:57,815 - __main__ - INFO - Compared repo: scikit-learn/scikit-learn
+2026-03-09 02:49:57,815 - __main__ - INFO - Attempt 1/3: GET https://api.github.com/repos/keras-team/keras
+2026-03-09 02:49:58,120 - __main__ - INFO - Success: https://api.github.com/repos/keras-team/keras
+2026-03-09 02:49:58,120 - __main__ - INFO - Compared repo: keras-team/keras
+2026-03-09 02:49:58,120 - __main__ - INFO - Attempt 1/3: GET https://api.github.com/repos/apache/spark
+2026-03-09 02:49:58,387 - __main__ - INFO - Success: https://api.github.com/repos/apache/spark
+2026-03-09 02:49:58,387 - __main__ - INFO - Compared repo: apache/spark
+2026-03-09 02:49:58,491 - __main__ - INFO - task3_results.xlsx exported successfully

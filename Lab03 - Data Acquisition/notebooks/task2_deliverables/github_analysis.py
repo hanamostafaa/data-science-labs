@@ -2,12 +2,81 @@ import pandas as pd
 import requests
 import time
 import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import logging
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+import json
 
-###### Helpers 
+# -----------------------------
+# Setup Logging
+# -----------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("api_requests.log", encoding="utf-8"),
+        logging.StreamHandler()
+    ],
+)
+
+logger = logging.getLogger(__name__)
+
+###### Helpers from notebook
+def fetch_with_error_handling(session, url, params=None, max_retries=3):
+    """
+    Robust API fetch with comprehensive error handling.
+    Handles: timeouts, connection errors, rate limits, server errors, bad JSON.
+    """
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"Attempt {attempt+1}/{max_retries}: GET {url}")
+
+            response = session.get(url, params=params, timeout=10)
+
+            if response.status_code == 200:
+                logger.info(f"Success: {url}")
+                check_rate_limit(response)
+                return response.json()
+
+            elif response.status_code == 404:
+                logger.error(f"Not Found: {url}")
+                return None
+
+            elif response.status_code == 429:
+                retry_after = int(response.headers.get("Retry-After", 60))
+                logger.warning(f"Rate limited. Waiting {retry_after}s...")
+                time.sleep(retry_after)
+                continue
+
+            elif response.status_code >= 500:
+                logger.error(f"Server error ({response.status_code}). Retrying...")
+                time.sleep(2**attempt)
+                continue
+
+            else:
+                logger.error(f"HTTP {response.status_code}: {url}")
+                response.raise_for_status()
+
+        except requests.exceptions.Timeout:
+            logger.warning(f"Timeout on attempt {attempt+1}")
+            time.sleep(2**attempt)
+
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Connection error: {e}")
+            time.sleep(2**attempt)
+
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON response")
+            return None
+
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            return None
+
+    logger.error(f"Failed after {max_retries} attempts: {url}")
+    return None
+
 def check_rate_limit(response):
     """
     Check rate limit info from response headers.
@@ -69,17 +138,6 @@ class RateLimiter:
         self.requests.append(now)
 
 # -----------------------------
-# Setup Logging
-# -----------------------------
-logging.basicConfig(
-    filename="api_requests.log",
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
-logger = logging.getLogger("GitHubAnalysis")
-
-# -----------------------------
 # Task 1: Repository Information
 # -----------------------------
 def task1_fetch_repos():
@@ -92,9 +150,9 @@ def task1_fetch_repos():
     for repo in repos:
         url = f'https://api.github.com/repos/{repo}'
         try:
-            response = requests.get(url)
-            if response.status_code == 200:
-                data = response.json()
+            data = fetch_with_error_handling(requests.Session(),url)
+
+            if data:
                 dic = {
                     'name': data['name'],
                     'stars': data['stargazers_count'],
@@ -115,31 +173,59 @@ def task1_fetch_repos():
 
 def task1_calculate_metrics():
     """Calculate age, stars/day, and issues per star for repos"""
-    df = pd.read_csv('task1_github.csv')
-    df['created_date'] = pd.to_datetime(df['created_date'])
-    today = pd.Timestamp.now(tz='UTC')
-    df['age_days'] = (today - df['created_date']).dt.days
-    df['stars_per_day'] = df['stars'] / df['age_days']
-    df['issues_per_star'] = df['open_issues'] / df['stars']
-    df.to_csv('task1_metrics.csv', index=False)
-    logger.info("Calculated repo metrics and saved task1_metrics.csv")
-    return df
+    try:
+        df = pd.read_csv('task1_github.csv')
+        if df.empty:
+            logger.warning("No data available for analysis.")
+            return
+        df['created_date'] = pd.to_datetime(df['created_date'])
+        today = pd.Timestamp.now(tz='UTC')
+        df['age_days'] = (today - df['created_date']).dt.days
+        df['stars_per_day'] = df['stars'] / df['age_days']
+        df['issues_per_star'] = df['open_issues'] / df['stars']
+        df.to_csv('task1_metrics.csv', index=False)
+        logger.info("Calculated repo metrics and saved task1_metrics.csv")
+        return df
+    except FileNotFoundError:
+        logger.error("task1_metrics.csv not found.")
+        return
+
+    except pd.errors.EmptyDataError:
+        logger.error("task1_metrics.csv is empty.")
+        return
 
 def task1_visualization():
     """Visualize stars and forks for the repositories"""
-    df = pd.read_csv('task1_metrics.csv')
-    plt.figure(figsize=(10,6))
-    x = df['name']
-    plt.bar(x, df['stars'], alpha=0.6, label='Stars')
-    plt.bar(x, df['forks'], alpha=0.6, label='Forks')
-    plt.title("GitHub Repository Comparison")
-    plt.xlabel("Repository")
-    plt.ylabel("Metric Value")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig("task1_comparison.png")
-    plt.show()
-    logger.info("task1_comparison.png saved successfully ✓")
+    try:
+        df = pd.read_csv('task1_metrics.csv')
+        if df.empty:
+            logger.warning("No data available for visualization.")
+            return
+        x = list(range(len(df)))
+        width = 0.35
+        plt.figure(figsize=(12,6))
+        plt.bar([i - width/2 for i in x], df['stars'], width, alpha=0.7, label='Stars', color='blue')
+        plt.bar([i + width/2 for i in x], df['forks'], width, alpha=0.7, label='Forks', color='skyblue')
+
+
+        plt.title("GitHub Repository Comparison")
+        plt.xlabel("Repository")
+        plt.ylabel("Metric Value")
+        plt.xticks(x, df['name'], rotation=45, ha='right')  # label the repos on x-axis
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig("task1_comparison.png")
+        plt.show()
+
+        logger.info("task1_comparison.png saved successfully ✓")
+    except FileNotFoundError:
+        logger.error("task1_metrics.csv not found.")
+        return
+
+    except pd.errors.EmptyDataError:
+        logger.error("task1_metrics.csv is empty.")
+        return
+
 
 # -----------------------------
 # Task 2: User Repository Analysis
@@ -161,11 +247,8 @@ def fetch_user_repos_paginated(username):
         params = {'page': page, 'per_page': 100}
         url = f'https://api.github.com/users/{username}/repos'
         try:
-            response = requests.get(url, params=params)
-            if response.status_code != 200:
-                logger.error(f"Error fetching page {page}: {response.status_code}")
-                break
-            data = response.json()
+            data = fetch_with_error_handling(requests.Session(),url, params=params)
+            
             if not data or len(data) == 0:
                 logger.info("No more results!")
                 break
@@ -176,7 +259,8 @@ def fetch_user_repos_paginated(username):
                     "forks": repo["forks_count"],
                     "language": repo["language"],
                     "created_at": repo["created_at"],
-                    "open_issues": repo["open_issues_count"]
+                    "open_issues": repo["open_issues_count"],
+                    "updated_at": repo["updated_at"],
                 })
             page += 1
             time.sleep(1)
@@ -188,24 +272,26 @@ def fetch_user_repos_paginated(username):
     logger.info(f"Fetched all repos for user {username}, saved to task2_all_repos.csv")
     return df
 
-def analyze_user_repos():
+def analyze_user_repos(user):
     """Analyze user repositories and generate summary report"""
-    df = pd.read_csv("task2_all_repos.csv")
-    if df.empty:
-        logger.warning("No data available for analysis.")
-        return
-    df["created_at"] = pd.to_datetime(df["created_at"])
-    if "updated_at" in df.columns:
-        df["updated_at"] = pd.to_datetime(df["updated_at"])
-    else:
-        df["updated_at"] = df["created_at"]
-    most_used_language = df["language"].value_counts().idxmax()
-    avg_stars = df["stars"].mean()
-    total_forks = df["forks"].sum()
-    most_recent_repo = df.loc[df["updated_at"].idxmax(), "name"]
-    oldest_repo = df.loc[df["created_at"].idxmin(), "name"]
-    report = f"""
+    try:
+        df = pd.read_csv("task2_all_repos.csv")
+        if df.empty:
+            logger.warning("No data available for analysis.")
+            return
+        df["created_at"] = pd.to_datetime(df["created_at"])
+        if "updated_at" in df.columns:
+            df["updated_at"] = pd.to_datetime(df["updated_at"])
+        else:
+            df["updated_at"] = df["created_at"]
+        most_used_language = df["language"].value_counts().idxmax()
+        avg_stars = df["stars"].mean()
+        total_forks = df["forks"].sum()
+        most_recent_repo = df.loc[df["updated_at"].idxmax(), "name"]
+        oldest_repo = df.loc[df["created_at"].idxmin(), "name"]
+        report = f"""
 GitHub Repository Analysis Report
+For User: {user}
 ==================================
 
 Total Repositories: {len(df)}
@@ -217,9 +303,16 @@ Total Forks Across All Repositories: {total_forks}
 Most Recently Updated Repository: {most_recent_repo}
 Oldest Repository: {oldest_repo}
 """
-    with open("task2_analysis.txt", "w", encoding="utf-8") as f:
-        f.write(report)
-    logger.info("Analysis complete. Summary saved to task2_analysis.txt")
+        with open("task2_analysis.txt", "w", encoding="utf-8") as f:
+            f.write(report)
+        logger.info("Analysis complete. Summary saved to task2_analysis.txt")
+    except FileNotFoundError:
+        logger.error("task1_metrics.csv not found.")
+        return
+    
+    except pd.errors.EmptyDataError:
+        logger.error("task1_metrics.csv is empty.")
+        return
 
 # -----------------------------
 # Task 3: GitHubAnalyzer Class
@@ -234,15 +327,15 @@ class GitHubAnalyzer:
         self.base_url = 'https://api.github.com'
         self.session = self._create_session()
         self.rate_limiter = RateLimiter(
-            max_requests=5000, time_window=3600
-        ) 
+            max_requests=5000 if token else 60, time_window=3600
+        )
 
         if token:
             self.session.headers.update({'Authorization': f'Bearer {token}'})
 
         self.session.headers.update({
             'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'Library-Tutorial/1.0',
+            'User-Agent': 'Github-API-Task/1.0',
         })
 
     def _create_session(self):
@@ -263,18 +356,13 @@ class GitHubAnalyzer:
         self.rate_limiter.wait_if_needed()  # Respect rate limits
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
 
-        try:
-            response = self.session.get(url, params=params, timeout=10)
-            response.raise_for_status()  # Raises exception for 4xx/5xx
-            self.logger.info(f"GET {endpoint} - Status: {response.status_code}")
+        data = fetch_with_error_handling(self.session, url, params=params)
 
-            # Peek at remaining rate limit with each response
-            remaining = check_rate_limit(response)
-            return response.json()
+        if data is None:
+            self.logger.error(f"Failed API request: {endpoint}")
+            return {}
 
-        except Exception as e:
-            self.logger.error(f"Error fetching {endpoint}: {e}")
-            raise
+        return data
 
     def search_repos(self, query, language=None, min_stars=0):
         """
@@ -300,10 +388,10 @@ class GitHubAnalyzer:
         self.logger.info(f"Search completed: {query}")
         return pd.DataFrame(data)
 
-    def get_trending(self, language="Python", since=7):
+    def get_trending(self, language="Python", since_years=1):
         """
         Get trending repositories.
-        Trending = most starred repos created in the last `since` days.
+        Trending = most starred repos created in the last `since_years`.
 
         Args:
             language: Programming language
@@ -311,9 +399,13 @@ class GitHubAnalyzer:
 
         Returns:
         """
-        date_since = (datetime.utcnow() - timedelta(days=since)).strftime("%Y-%m-%d")
-        query = f"language:{language} created:>={date_since}"
+        date_since = (datetime.now(UTC) - timedelta(days=365 * since_years)).strftime("%Y-%m-%d")
+        query = f"language:{language} created_at:>={date_since}"
         results = self.get("/search/repositories", params={"q": query, "sort": "stars", "order": "desc", "per_page": 30})
+        if not results:
+            self.logger.warning("Trending repositories request failed.")
+            return pd.DataFrame()
+        
         items = results.get("items", [])
 
         data = []
@@ -358,7 +450,7 @@ class GitHubAnalyzer:
                 continue
         return pd.DataFrame(comparison_data)
 
-    def export_to_excel(self, df, filename):
+    def export_to_excel(self, dataframes, filename):
         """
         Export DataFrame to Excel with formatting.
         - Bold headers
@@ -366,9 +458,7 @@ class GitHubAnalyzer:
         - Add creation timestamp
         """
         with pd.ExcelWriter(filename, engine="xlsxwriter") as writer:
-            df.to_excel(writer, sheet_name="Results", index=False)
             workbook = writer.book
-            worksheet = writer.sheets["Results"]
 
             header_format = workbook.add_format({
                 "bold": True,
@@ -376,11 +466,19 @@ class GitHubAnalyzer:
                 "valign": "middle"
             })
 
-            for col_num, value in enumerate(df.columns.values):
-                worksheet.write(0, col_num, value, header_format)
-                column_len = max(df[value].astype(str).map(len).max(), len(value)) + 2
-                worksheet.set_column(col_num, col_num, column_len)
-            worksheet.write(len(df)+2, 0, f"Exported at: {datetime.now()}")
+            for sheet_name, df in dataframes.items():
+                if df is None or df.empty:
+                    self.logger.warning(f"{sheet_name} is empty, skipping sheet.")
+                    continue
+
+                df.to_excel(writer, sheet_name=sheet_name, index=False)
+                worksheet = writer.sheets[sheet_name]
+
+                for col_num, value in enumerate(df.columns.values):
+                    worksheet.write(0, col_num, value, header_format)
+                    column_len = max(df[value].astype(str).map(len).max(), len(value)) + 2
+                    worksheet.set_column(col_num, col_num, column_len)
+                worksheet.write(len(df)+2, 0, f"Exported at: {datetime.now()}")
         self.logger.info(f"{filename} exported successfully")
 
 # -----------------------------
@@ -391,10 +489,10 @@ if __name__ == "__main__":
     task1_calculate_metrics()
     task1_visualization()
     fetch_user_repos_paginated("torvalds")
-    analyze_user_repos()
+    analyze_user_repos("torvalds")
     analyzer = GitHubAnalyzer()
     search_df = analyzer.search_repos("data science", language="Python", min_stars=500)
-    trending_df = analyzer.get_trending(language="Python", since=7)
+    trending_df = analyzer.get_trending(language="Python", since_years=7)
     repos_to_compare = [
         "tensorflow/tensorflow",
         "pytorch/pytorch",
@@ -403,4 +501,12 @@ if __name__ == "__main__":
         "apache/spark"
     ]
     compare_df = analyzer.compare_repos(repos_to_compare)
-    analyzer.export_to_excel(compare_df, "task3_results.xlsx")
+    print(search_df)
+    print(trending_df)
+    print(compare_df)
+
+    analyzer.export_to_excel({
+                    "Search Results": search_df,
+                    "Trending Repos": trending_df,
+                    "Repository Comparison": compare_df
+                },"task3_results.xlsx")
