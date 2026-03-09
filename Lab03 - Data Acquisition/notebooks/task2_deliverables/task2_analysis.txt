@@ -1,12 +1,13 @@
 
 GitHub Repository Analysis Report
+For User: torvalds
 ==================================
 
 Total Repositories: 11
 
 Most Used Programming Language: C
-Average Stars per Repository: 21140.27
-Total Forks Across All Repositories: 61813
+Average Stars per Repository: 21185.73
+Total Forks Across All Repositories: 61885
 
-Most Recently Updated Repository: HunspellColorize
+Most Recently Updated Repository: linux
 Oldest Repository: linux

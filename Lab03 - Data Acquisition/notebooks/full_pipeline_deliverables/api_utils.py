@@ -9,6 +9,22 @@ from urllib3.util.retry import Retry
 # RATE LIMIT CHECK
 # =========================================================
 
+def check_rate_limit_logged(response, logger):
+    if "X-RateLimit-Limit" not in response.headers:
+        return
+
+    limit = int(response.headers["X-RateLimit-Limit"])
+    remaining = int(response.headers["X-RateLimit-Remaining"])
+    reset_timestamp = int(response.headers["X-RateLimit-Reset"])
+    reset_time = datetime.fromtimestamp(reset_timestamp)
+
+    logger.info(f"Rate Limit: {remaining}/{limit}, resets at {reset_time}")
+
+    if remaining == 0:
+        wait_seconds = max(reset_timestamp - int(time.time()), 0)
+        logger.warning(f"Rate limit reached. Sleeping {wait_seconds}s...")
+        time.sleep(wait_seconds + 1)
+
 def check_rate_limit(response):
     """
     Check GitHub rate limit and sleep if necessary.
@@ -30,7 +46,7 @@ def check_rate_limit(response):
     if remaining == 0:
         wait_seconds = max(reset_timestamp - now, 0)
 
-        print(f"⏰ Rate limit reached. Waiting {wait_seconds} seconds...")
+        print(f"Rate limit reached. Waiting {wait_seconds} seconds...")
 
         time.sleep(wait_seconds + 1)
 
@@ -63,13 +79,83 @@ class RateLimiter:
             sleep_time = self.time_window - (now - oldest)
 
             if sleep_time > 0:
-                print(f"⏰ Sleeping {sleep_time:.1f}s due to rate limit")
+                print(f"Sleeping {sleep_time:.1f}s due to rate limit")
                 time.sleep(sleep_time)
 
             self.requests = []
 
         self.requests.append(now)
 
+# =========================================================
+# ERROR HANDLING 
+# =========================================================
+
+def fetch_with_error_handling(session, url, params=None, logger=None, max_retries=3):
+    """
+    Robust GET request with retries and error handling.
+    Logs messages if a logger is provided.
+    """
+    for attempt in range(max_retries):
+        try:
+            response = session.get(url, params=params, timeout=10)
+
+            # Rate limit check
+            if logger:
+                check_rate_limit_logged(response, logger)
+            else:
+                check_rate_limit(response)
+
+            # Success
+            if response.status_code == 200:
+                return response.json()
+
+            elif response.status_code == 404:
+                if logger:
+                    logger.error(f"Not Found: {url}")
+                return None
+
+            elif response.status_code == 429:
+                retry_after = int(response.headers.get("Retry-After", 60))
+                msg = f"Rate limited. Waiting {retry_after}s..."
+                if logger: logger.warning(msg)
+                else: print(msg)
+                time.sleep(retry_after)
+                continue
+
+            elif response.status_code >= 500:
+                msg = f"Server error {response.status_code}, retrying..."
+                if logger: logger.warning(msg)
+                else: print(msg)
+                time.sleep(2**attempt)
+                continue
+
+            else:
+                msg = f"HTTP {response.status_code}: {url}"
+                if logger: logger.error(msg)
+                else: print(msg)
+                response.raise_for_status()
+
+        except requests.exceptions.Timeout:
+            msg = f"Timeout on attempt {attempt + 1}, retrying..."
+            if logger: logger.warning(msg)
+            else: print(msg)
+            time.sleep(2**attempt)
+
+        except requests.exceptions.ConnectionError as e:
+            msg = f"Connection error: {e}"
+            if logger: logger.error(msg)
+            else: print(msg)
+            time.sleep(2**attempt)
+
+        except Exception as e:
+            msg = f"Unexpected error: {e}"
+            if logger: logger.error(msg)
+            else: print(msg)
+            return None
+
+    if logger:
+        logger.error(f"Failed after {max_retries} attempts: {url}")
+    return None
 
 # =========================================================
 # RETRY SESSION
@@ -105,11 +191,12 @@ class GitHubAPIClient:
     - logging friendly design
     """
 
-    def __init__(self, token=None):
+    def __init__(self,logger=None, token=None):
 
         self.base_url = "https://api.github.com"
 
         self.session = create_retry_session()
+        self.logger = logger
 
         self.rate_limiter = RateLimiter(
             max_requests=60,
@@ -118,7 +205,7 @@ class GitHubAPIClient:
 
         self.session.headers.update({
             "Accept": "application/vnd.github+json",
-            "User-Agent": "MarketIntelligencePipeline"
+            "User-Agent": "Market-Intelligence-Pipeline/1.0"
         })
 
         if token:
@@ -132,13 +219,7 @@ class GitHubAPIClient:
     
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
     
-        response = self.session.get(url, params=params, timeout=10)
-    
-        check_rate_limit(response)
-    
-        response.raise_for_status()
-    
-        return response.json()
+        return fetch_with_error_handling(self.session, url, params=params,logger=self.logger)
     
     def get_paginated(self, endpoint, params=None, max_pages=5):
         """

@@ -50,13 +50,7 @@ class DataCollectionPipeline:
 
         # ── Setup HTTP session ────────────────────────────────────────────────
         self.session = requests.Session()
-        self.api_client = GitHubAPIClient()
-
-        # self.session.headers.update(
-        # {
-        #     "User-Agent": "BookMarketIntelligenceProject",
-        #     "Accept": "application/vnd.github+json"
-        # })
+        self.api_client = GitHubAPIClient(self.logger)
 
         self.scraper = CategoryScraper()  
         self.logger.info("Pipeline initialized")
@@ -365,14 +359,11 @@ print("✅ DataCollectionPipeline class defined successfully!")
 pipeline = DataCollectionPipeline("market_intelligence.db")
 
 # ─── Step 1: Collect from a local SQLite database ─────────────────────────────
-# Total fines per membership type 
+# all books 
 library_data = pipeline.collect_from_database(
     """
-WITH unique_members AS (SELECT member_id, SUM(fine_amount) as fines_per_member from borrowings group by member_id HAVING SUM(fine_amount) > 0)
-
-SELECT membership_type, COUNT(*) as total_members, SUM(fines_per_member) as total_fines , AVG(fines_per_member) as avg_fine_per_member
-FROM members m INNER JOIN unique_members u ON m.member_id = u.member_id
-GROUP BY membership_type
+SELECT *
+FROM books b
 """,  # SQL query
     'library.db',  # Path to source database
 )

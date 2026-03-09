@@ -4,7 +4,7 @@
 pip install pandas requests beautifulsoup4 lxml
 
 ## How to Run
-python final_project.py
+python full_pipeline.py
 
 ## Architecture
 - SQLite database
@@ -16,3 +16,4 @@ Tables:
 - api_data
 - scraped_data
 - pipeline_logs
+- books

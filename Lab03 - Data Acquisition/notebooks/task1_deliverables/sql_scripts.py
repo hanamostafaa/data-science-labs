@@ -28,7 +28,7 @@ ORDER BY total_borrowings DESC
 df1_2 = pd.read_sql_query(query1_2, conn)
 df1_2.to_csv('task1_2.csv', index=False)
 
-# 1.3 Total and average fines per membership type
+# 1.3 Total fines by membership type and average fines per member 
 query1_3 = """
 WITH unique_members AS (
     SELECT member_id, SUM(fine_amount) AS fines_per_member
