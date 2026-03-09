@@ -154,35 +154,15 @@ plt.title("Programming Languages Used in Book-related GitHub Projects")
 plt.tight_layout()
 plt.savefig("graph5_github_languages.png")
 plt.clf()
+# # -----------------------------
+# # Analysis for data from scraping
 # -----------------------------
-# Analysis for data from scraping
-# -----------------------------
 
-scraped_df = pd.read_sql_query("SELECT content FROM scraped_data", conn)
-
-prices = []
-ratings = []
-books = []
-categories = []
-
-for row in scraped_df["content"]:
-    data = json.loads(row)
-
-    price = data.get("price")
-    rating = data.get("rating")
-    category = data.get("category")
-    books.append({
-        "title": data.get("title"),
-        "rating": data.get("rating"),
-        "price": float(data.get("price")),
-        "category": category
-    })
-
-    if price and rating:
-        prices.append(float(price))
-        ratings.append(rating)
-        categories.append(category)
-
+scraped_df = pd.read_sql_query("SELECT * FROM books", conn)
+prices = scraped_df["price"]
+ratings = scraped_df["rating"]
+categories = scraped_df["category"]
+    
 
 # -----------------------------
 # GRAPH 6 – Prices

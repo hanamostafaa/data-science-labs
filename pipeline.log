@@ -1,0 +1,34 @@
+2026-03-09 12:08:30,910 - __main__ - INFO - Pipeline initialized
+2026-03-09 12:08:30,911 - __main__ - INFO - Collecting from database: library.db
+2026-03-09 12:08:30,913 - __main__ - ERROR - Database error: Execution failed on sql '
+SELECT *
+FROM books b
+': no such table: books
+2026-03-09 12:08:30,920 - __main__ - INFO - Collecting from API: https://api.github.com/search/repositories
+2026-03-09 12:08:32,399 - __main__ - INFO - Rate Limit: 9/10, resets at 2026-03-09 12:09:33
+2026-03-09 12:08:32,815 - __main__ - INFO - Rate Limit: 8/10, resets at 2026-03-09 12:09:33
+2026-03-09 12:08:33,345 - __main__ - INFO - Rate Limit: 7/10, resets at 2026-03-09 12:09:33
+2026-03-09 12:08:33,801 - __main__ - INFO - Rate Limit: 6/10, resets at 2026-03-09 12:09:33
+2026-03-09 12:08:34,263 - __main__ - INFO - Rate Limit: 5/10, resets at 2026-03-09 12:09:33
+2026-03-09 12:08:34,275 - __main__ - INFO - Collected 25 records
+2026-03-09 12:08:34,284 - __main__ - INFO - Scraping categories: ['Travel', 'Mystery', 'Historical Fiction', 'Science Fiction', 'Fantasy', 'Romance']
+2026-03-09 12:08:46,542 - __main__ - INFO - Scraped 160 books from categories: ['Travel', 'Mystery', 'Historical Fiction', 'Science Fiction', 'Fantasy', 'Romance']
+2026-03-09 12:08:46,633 - __main__ - INFO - Data exported to exports/
+2026-03-09 12:08:46,684 - __main__ - INFO - Pipeline closed
+2026-03-09 12:13:15,759 - __main__ - INFO - Pipeline initialized
+2026-03-09 12:13:15,760 - __main__ - INFO - Collecting from database: library.db
+2026-03-09 12:13:15,762 - __main__ - ERROR - Database error: Execution failed on sql '
+SELECT *
+FROM books b
+': no such table: books
+2026-03-09 12:13:15,771 - __main__ - INFO - Collecting from API: https://api.github.com/search/repositories
+2026-03-09 12:13:17,049 - __main__ - INFO - Rate Limit: 8/10, resets at 2026-03-09 12:14:12
+2026-03-09 12:13:17,425 - __main__ - INFO - Rate Limit: 7/10, resets at 2026-03-09 12:14:12
+2026-03-09 12:13:18,177 - __main__ - INFO - Rate Limit: 6/10, resets at 2026-03-09 12:14:12
+2026-03-09 12:13:18,563 - __main__ - INFO - Rate Limit: 5/10, resets at 2026-03-09 12:14:12
+2026-03-09 12:13:18,970 - __main__ - INFO - Rate Limit: 4/10, resets at 2026-03-09 12:14:12
+2026-03-09 12:13:18,980 - __main__ - INFO - Collected 25 records
+2026-03-09 12:13:18,988 - __main__ - INFO - Scraping categories: ['Travel', 'Mystery', 'Historical Fiction', 'Science Fiction', 'Fantasy', 'Romance']
+2026-03-09 12:13:31,052 - __main__ - INFO - Scraped 160 books from categories: ['Travel', 'Mystery', 'Historical Fiction', 'Science Fiction', 'Fantasy', 'Romance']
+2026-03-09 12:13:31,125 - __main__ - INFO - Data exported to exports/
+2026-03-09 12:13:31,165 - __main__ - INFO - Pipeline closed

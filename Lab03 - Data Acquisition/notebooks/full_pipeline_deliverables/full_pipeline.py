@@ -98,7 +98,8 @@ class DataCollectionPipeline:
                 title TEXT NOT NULL,
                 rating REAL,
                 price REAL,
-                availability TEXT
+                availability TEXT,
+                category TEXT
             )
         '''
         )
@@ -237,10 +238,10 @@ class DataCollectionPipeline:
             cursor = self.conn.cursor()
             cursor.execute(
                 '''
-                INSERT INTO books (title, rating, price, availability)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO books (title, rating, price, availability, category)
+                VALUES (?, ?, ?, ?, ?)
             ''',
-                (book['title'], book['rating'], book['price'], book['availability']),
+                (book['title'], book['rating'], book['price'], book['availability'], book['category']),
             )
             cursor.execute(
                 '''
